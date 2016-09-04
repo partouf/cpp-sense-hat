@@ -4,7 +4,7 @@ CXXFLAGS := -Isrc -Os
 PICFLAGS := -fPIC
 SO_LDFLAGS := -shared -rdynamic
 
-all: $(SAMPLES)
+all: $(LIB) $(SAMPLES)
 
 samples/blank: src/blank.cpp src/sense-hat.h $(LIB)
 	 $(CXX) $(CXXFLAGS) -o samples/blank src/blank.cpp -Llib -lsense-hat
