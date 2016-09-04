@@ -1,26 +1,25 @@
-/*
- *
- */
+#pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
-class RTHumidity;
+namespace SenseHAT
+{
+   struct d3
+   {
+      double x;
+      double y;
+      double z;
+      bool valid;
+   };
 
-class SenseHAT {
-public:
-	SenseHAT();
-
-	// Methods for manipulating LED matrix
-	int blank();
-	int set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-
-	// Sensor methods
-	double get_humidity();
-
-private:
-	int fbfd;
-
-	int init_fb();
-
-	RTHumidity* humidity;
+   class ISenseHAT
+   {
+   public:
+      virtual double get_humidity() = 0;
+      virtual double get_pressure() = 0;
+      virtual d3 get_gyro() = 0;
+      virtual d3 get_accel() = 0;
+      virtual d3 get_magno() = 0;
+      virtual double get_temperature() = 0;
+   };
 };
