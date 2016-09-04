@@ -18,8 +18,8 @@ samples/sensors: src/sensors.cpp src/sense-hat.h $(LIB)
 $(LIB): src/sense-hat.o
 	$(CXX) $(SO_LDFLAGS) -o $@ $< -lRTIMULib
 
-src/sense-hat.so: src/sense-hat.cpp src/sense-hat.h src/sense-hat-linux.cpp src/sense-hat-linux.h
-	$(CXX) $(CXXFLAGS) $(PICFLAGS) $(SO_LDFLAGS) -o $@ src/sense-hat.cpp src/sense-hat-linux.cpp
+src/sense-hat.so: src/sense-hat.h src/sense-hat-linux.cpp src/sense-hat-linux.h
+	$(CXX) $(CXXFLAGS) $(PICFLAGS) $(SO_LDFLAGS) -o $@ src/sense-hat-linux.cpp
 
 clean:
 	rm -f $(SAMPLES)
