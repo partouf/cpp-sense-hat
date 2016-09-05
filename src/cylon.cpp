@@ -1,9 +1,12 @@
 #include <sense-hat.h>
+#include <sense-hat-linux.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
-int put_dot(SenseHAT& senseHat, int x, uint8_t r, uint8_t g, uint8_t b)
+using namespace SenseHAT;
+
+int put_dot(SenseHATLinux& senseHat, int x, uint8_t r, uint8_t g, uint8_t b)
 {
 	int rc;
 	rc = senseHat.set_pixel(3, x, r, g, b);
@@ -18,7 +21,7 @@ int put_dot(SenseHAT& senseHat, int x, uint8_t r, uint8_t g, uint8_t b)
 
 int main() 
 {
-	SenseHAT senseHAT;
+	SenseHATLinux senseHAT;
 	int rc = senseHAT.blank();
 	if(rc != 0) {
 		fprintf(stderr, "error in SenseHAT::blank(): %s", strerror(rc));
