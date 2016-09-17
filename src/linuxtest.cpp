@@ -27,13 +27,18 @@ wiringPiSetupSys();
 		delay(500);
 	}
 */
-   SenseHAT::SenseHAT *Hat = new SenseHAT::SenseHATLinux();
+   SenseHAT::ISenseHAT *Hat = new SenseHAT::SenseHATLinux();
 
    std::cout << "Humidity: " << Hat->get_humidity() << std::endl;
    std::cout << "Pressure: " << Hat->get_pressure() << std::endl;
 
    SenseHAT::d3 data;
-   
+
+   data = Hat->get_temperature();
+   std::cout << "Temp1: " << data.x << std::endl;
+   std::cout << "Temp2: " << data.y << std::endl;
+
+
    data = Hat->get_gyro();
    while (!data.valid)
    {

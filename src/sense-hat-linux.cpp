@@ -170,9 +170,55 @@ double SenseHAT::SenseHATLinux::get_pressure()
    return data.pressure;
 }
 
-double SenseHAT::SenseHATLinux::get_temperature()
+SenseHAT::d3 SenseHAT::SenseHATLinux::get_temperature()
 {
-   return 0.0;
+   d3 d3data = { nan(""), nan(""), nan(""), false };
+
+   bool humok = false;
+   bool pressok = false;
+
+   RTIMU_DATA data;
+   if (humidity->humidityRead(data)) {
+      if (data.temperatureValid) {
+         d3data.x = data.temperature;
+         humok = true;
+      }
+   }
+
+   if (pressure->pressureRead(data)) {
+      if (data.temperatureValid) {
+         d3data.y = data.temperature;
+         pressok = true;
+      }
+   }
+
+   d3data.valid = humok && pressok;
+
+   return d3data;
+}
+
+double SenseHAT::SenseHATLinux::get_temperature_from_humidity()
+{
+   RTIMU_DATA data;
+   if (!humidity->humidityRead(data)) {
+      return nan("");
+   }
+   if (!data.temperatureValid) {
+      return nan("");
+   }
+   return data.temperature;
+}
+
+double SenseHAT::SenseHATLinux::get_temperature_from_pressure()
+{
+   RTIMU_DATA data;
+   if (!pressure->pressureRead(data)) {
+      return nan("");
+   }
+   if (!data.temperatureValid) {
+      return nan("");
+   }
+   return data.temperature;
 }
 
 SenseHAT::d3 SenseHAT::SenseHATLinux::get_gyro()

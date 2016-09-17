@@ -20,6 +20,7 @@ namespace SenseHAT
       virtual d3 get_gyro() = 0;
       virtual d3 get_accel() = 0;
       virtual d3 get_magno() = 0;
-      virtual double get_temperature() = 0;
+      virtual d3 get_compass() = 0;
+      virtual d3 get_temperature() = 0;
    };
 };

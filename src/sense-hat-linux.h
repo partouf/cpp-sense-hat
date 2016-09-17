@@ -21,7 +21,7 @@ namespace SenseHAT
       // Sensor methods
       virtual double get_humidity() override;
       virtual double get_pressure() override;
-      virtual double get_temperature() override;
+      virtual d3 get_temperature() override;
 
       virtual d3 get_gyro() override;
       virtual d3 get_accel() override;
@@ -33,9 +33,13 @@ namespace SenseHAT
 
       int init_fb();
 
+      double get_temperature_from_humidity();
+      double get_temperature_from_pressure();
+
       RTIMUSettings* settings;
       RTIMU* imu;
       RTHumidity* humidity;
       RTPressure* pressure;
+
    };
 };
