@@ -37,7 +37,7 @@ SenseHAT::ISenseHAT * SenseHAT::SenseHATSim::Instance()
    return HATInstance;
 }
 
-double SenseHAT::SenseHATSim::get_temperature()
+SenseHAT::d3 SenseHAT::SenseHATSim::get_temperature()
 {
-   return 0.0;
+   return {0,0,0,true};
 }
