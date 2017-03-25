@@ -178,13 +178,13 @@ void SenseHAT::SenseHATLEDMatrixLinux::SetPixel(int x, int y, uint8_t r, uint8_t
    }
 }
 
-void SenseHAT::SenseHATLEDMatrixLinux::SetFromRgbaMatrix(const SenseHATColor_t Map[8][8])
+void SenseHAT::SenseHATLEDMatrixLinux::SetFromRgbaMatrix(const SenseHATColor_t matrix[8][8])
 {
    for (int y = 0; y < 8; ++y)
    {
       for (int x = 0; x < 8; ++x)
       {
-         SenseHATColor_rgba color = Map[y][x];
+         SenseHATColor_rgba color = matrix[y][x];
 
          SetPixel(x, y, color.r, color.g, color.b);
       }

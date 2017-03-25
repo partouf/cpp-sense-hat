@@ -60,6 +60,6 @@ void SenseHAT::SenseHATLedMatrixSim::SetPixel(int x, int y, uint8_t r, uint8_t g
 {
 }
 
-void SenseHAT::SenseHATLedMatrixSim::SetFromRgbaMatrix(const SenseHATColor_t Map[8][8])
+void SenseHAT::SenseHATLedMatrixSim::SetFromRgbaMatrix(const SenseHATColor_t matrix[8][8])
 {
 }
