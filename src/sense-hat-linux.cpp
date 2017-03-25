@@ -13,17 +13,53 @@
 #include <ctype.h>
 #include <unistd.h>
 #include "sense-hat-linux.h"
+#include <memory>
 
 #include <RTIMULib.h>
 
-static pthread_mutex_t sense_hat_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 static const char SENSE_HAT_FB_NAME[] = "RPi-Sense FB";
+
+static void sense_hat_rstrip(char* s)
+{
+   size_t l = strlen(s);
+   if (l == 0) return;
+   char* end = s + l - 1;
+   while (end >= s && isspace(*end)) {
+      end--;
+   }
+   end[1] = '\0';
+}
+
+static uint16_t pack_pixel(uint8_t r, uint8_t g, uint8_t b)
+{
+   uint16_t r16 = (r >> 3) & 0x1F;
+   uint16_t g16 = (g >> 2) & 0x3F;
+   uint16_t b16 = (b >> 3) & 0x1F;
+   return static_cast<uint16_t>((r16 << 11) + (g16 << 5) + b16);
+}
+
+#include <functional>
+class Finally
+{
+public:
+   Finally(std::function<void(void)> callback) : callback_(callback)
+   {
+   }
+   ~Finally()
+   {
+      callback_();
+   }
+   std::function<void(void)> callback_;
+};
+
 
 SenseHAT::ISenseHAT *HATInstance = nullptr;
 
-SenseHAT::SenseHATLinux::SenseHATLinux()
-	: SenseHAT::ISenseHAT(), fbfd(-1)
+SenseHAT::SenseHATLinux::SenseHATLinux() : SenseHAT::ISenseHAT()
 {
+   this->LEDMatrix = std::make_unique<SenseHAT::SenseHATLEDMatrixLinux>();
+
    settings = new RTIMUSettings();
 
    imu = RTIMU::createIMU(settings);
@@ -31,11 +67,19 @@ SenseHAT::SenseHATLinux::SenseHATLinux()
    {
       imu->IMUInit();
    }
+   else
+   {
+      throw new SenseHATException("RTIMU could not be initialized");
+   }
 
-	humidity = RTHumidity::createHumidity(settings);
+   humidity = RTHumidity::createHumidity(settings);
    if (humidity)
    {
       humidity->humidityInit();
+   }
+   else
+   {
+      throw new SenseHATException("RTHumidity could not be initialized");
    }
 
    pressure = RTPressure::createPressure(settings);
@@ -43,96 +87,119 @@ SenseHAT::SenseHATLinux::SenseHATLinux()
    {
       pressure->pressureInit();
    }
+   else
+   {
+      throw new SenseHATException("RTPressure could not be initialized");
+   }
 }
 
-static uint16_t pack_pixel(uint8_t r, uint8_t g, uint8_t b)
+SenseHAT::SenseHATLinux::~SenseHATLinux()
 {
-	uint16_t r16 = (r >> 3) & 0x1F;
-	uint16_t g16 = (g >> 2) & 0x3F;
-	uint16_t b16 = (b >> 3) & 0x1F;
-	return (r16 << 11) + (g16 << 5) + b16;
+   delete imu;
+   delete humidity;
+   delete pressure;
+   delete settings;
 }
 
-static void sense_hat_rstrip(char* s)
+void SenseHAT::SenseHATLEDMatrixLinux::init_fb()
 {
-	size_t l = strlen(s);
-	if(l == 0) return;
-	char* end = s + l - 1;
-	while(end >= s && isspace(*end)) {
-		end--;
-	}
-	end[1] = '\0';
+   if (this->fbfd != -1) {
+      return;
+   }
+
+   DIR* d = opendir("/sys/class/graphics");
+   if (d == NULL) {
+      throw new SenseHATErrnoException(errno);
+   }
+   auto delete_dir = Finally([d] { closedir(d); });
+
+   struct dirent* dent = (struct dirent*)malloc(offsetof(struct dirent, d_name) + NAME_MAX + 1);
+   struct dirent* dentp;
+
+   auto delete_dent = Finally([dent] { free(dent); });
+
+   while (true) {
+      int rc = readdir_r(d, dent, &dentp);
+      if (rc == 0 && dentp == NULL) {
+         rc = ENOENT;
+      }
+
+      if (rc != 0) {
+         throw new SenseHATErrnoException(rc);
+      }
+
+      if (strncmp("fb", dent->d_name, 2) == 0) {
+         char path[PATH_MAX];
+         snprintf(path, PATH_MAX, "/sys/class/graphics/%s/name", dent->d_name);
+
+         FILE* f = fopen(path, "r");
+         if (f == NULL) continue;
+         auto delete_f = Finally([f] { fclose(f); });
+
+         char name[1024];
+         fgets(name, sizeof(name), f);
+
+         sense_hat_rstrip(name);
+         if (strcmp(name, SENSE_HAT_FB_NAME) == 0) {
+            snprintf(path, PATH_MAX, "/dev/%s", dent->d_name);
+            this->fbfd = open(path, O_RDWR);
+
+            if (this->fbfd == -1) {
+               throw new SenseHATErrnoException(errno);
+            }
+            break;
+         }
+      }
+   }
 }
 
-int SenseHAT::SenseHATLinux::init_fb()
+SenseHAT::SenseHATLEDMatrixLinux::SenseHATLEDMatrixLinux() : ISenseHATLEDMatrix()
 {
-	if(fbfd != -1) {
-		return 0;
-	}
-	DIR* d = opendir("/sys/class/graphics");
-	if(d == NULL) {
-		return errno;
-	}
-	struct dirent* dent = (struct dirent*)malloc(offsetof(struct dirent, d_name) + NAME_MAX + 1);
-	struct dirent* dentp;
-	while(1) {
-		int rc = readdir_r(d, dent, &dentp);
-		if(rc == 0 && dentp == NULL) {
-			rc = ENOENT;
-		}
-		if(rc != 0) {
-			free(dent);
-			closedir(d);
-			return rc;
-		}
-		if(strncmp("fb", dent->d_name, 2) == 0) {
-			char path[PATH_MAX];
-			snprintf(path, PATH_MAX, "/sys/class/graphics/%s/name", dent->d_name);
-			FILE* f = fopen(path, "r");
-			if(f == NULL) continue;
-			char name[1024];
-			fgets(name, sizeof(name), f);
-			sense_hat_rstrip(name);
-			if(strcmp(name, SENSE_HAT_FB_NAME) == 0) {
-				snprintf(path, PATH_MAX, "/dev/%s", dent->d_name);
-				fbfd = open(path, O_RDWR);
-				free(dent);
-				closedir(d);
-				if(fbfd == -1) {
-					return errno;
-				}
-				break;
-			}
-		}
-	}
-	return 0;
+   this->fbfd = -1;
+
+   init_fb();
 }
 
-int SenseHAT::SenseHATLinux::blank()
+SenseHAT::SenseHATLEDMatrixLinux::~SenseHATLEDMatrixLinux()
 {
-	int rc = init_fb();
-	if(rc != 0) {
-		return rc;
-	}
-	char buf[128];
-	memset(buf, 0, 128);
-	if(pwrite(fbfd, buf, 128, 0) != 128) {
-		return errno;
-	}
-	return 0;
+   if (fbfd != -1)
+   {
+      close(fbfd);
+   }
 }
 
-int SenseHAT::SenseHATLinux::set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
+void SenseHAT::SenseHATLEDMatrixLinux::SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b)
 {
-	int rc = init_fb();
-	if(rc != 0) {
-		return rc;
-	}
-	uint16_t p = pack_pixel(r, g, b);
-	if(pwrite(fbfd, &p, 2, (x + y*8)*2) != 2) {
-		return errno;
-	}
-	return 0;
+   init_fb();
+
+   uint16_t p = pack_pixel(r, g, b);
+   if (pwrite(fbfd, &p, 2, (x + y * 8) * 2) != 2) {
+      throw new SenseHATErrnoException(errno);
+   }
+}
+
+void SenseHAT::SenseHATLEDMatrixLinux::SetFromRgbaMatrix(const SenseHATColor_t matrix[8][8])
+{
+   for (int y = 0; y < 8; ++y)
+   {
+      for (int x = 0; x < 8; ++x)
+      {
+         SenseHATColor_rgba color = matrix[y][x];
+
+         SetPixel(x, y, color.r, color.g, color.b);
+      }
+   }
+}
+
+void SenseHAT::SenseHATLEDMatrixLinux::Clear()
+{
+   init_fb();
+
+   char buf[128];
+   memset(buf, 0, 128);
+   if (pwrite(this->fbfd, buf, 128, 0) != 128) {
+      throw new SenseHATErrnoException(errno);
+   }
 }
 
 double SenseHAT::SenseHATLinux::get_humidity()
@@ -144,13 +211,13 @@ double SenseHAT::SenseHATLinux::get_humidity()
 
    RTIMU_DATA data;
 
-	if(!humidity->humidityRead(data)) {
-		return nan("");
-	}
-	if(!data.humidityValid) {
-		return nan("");
-	}
-	return data.humidity;
+   if (!humidity->humidityRead(data)) {
+      return nan("");
+   }
+   if (!data.humidityValid) {
+      return nan("");
+   }
+   return data.humidity;
 }
 
 double SenseHAT::SenseHATLinux::get_pressure()

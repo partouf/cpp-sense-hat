@@ -10,13 +10,26 @@ class RTIMU;
 
 namespace SenseHAT
 {
+   class SenseHATLEDMatrixLinux : public ISenseHATLEDMatrix {
+   private:
+      int fbfd;
+
+      void init_fb();
+   public:
+      SenseHATLEDMatrixLinux();
+      ~SenseHATLEDMatrixLinux();
+
+      virtual void Clear() override;
+
+      virtual void SetPixel(int x, int y, uint8_t r, uint8_t g, uint8_t b) override;
+
+      virtual void SetFromRgbaMatrix(const SenseHATColor_t matrix[8][8]) override;
+   };
+
    class SenseHATLinux : public ISenseHAT {
    public:
       SenseHATLinux();
-
-      // Methods for manipulating LED matrix
-      int blank();
-      int set_pixel(int x, int y, uint8_t r, uint8_t g, uint8_t b);
+      ~SenseHATLinux();
 
       // Sensor methods
       virtual double get_humidity() override;
@@ -29,10 +42,6 @@ namespace SenseHAT
 
       static ISenseHAT *Instance();
    private:
-      int fbfd;
-
-      int init_fb();
-
       double get_temperature_from_humidity();
       double get_temperature_from_pressure();
 
@@ -40,6 +49,5 @@ namespace SenseHAT
       RTIMU* imu;
       RTHumidity* humidity;
       RTPressure* pressure;
-
    };
 };
