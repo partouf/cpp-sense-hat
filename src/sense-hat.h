@@ -72,6 +72,6 @@ namespace SenseHAT
       virtual d3 get_magno() = 0;
       virtual d3 get_temperature() = 0;
 
-      std::unique_ptr<SenseHAT::ISenseHATLEDMatrix> Matrix;
+      std::unique_ptr<SenseHAT::ISenseHATLEDMatrix> LEDMatrix;
    };
 };

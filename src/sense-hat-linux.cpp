@@ -58,7 +58,7 @@ SenseHAT::ISenseHAT *HATInstance = nullptr;
 
 SenseHAT::SenseHATLinux::SenseHATLinux() : SenseHAT::ISenseHAT()
 {
-   this->Matrix = std::make_unique<SenseHAT::SenseHATLEDMatrixLinux>();
+   this->LEDMatrix = std::make_unique<SenseHAT::SenseHATLEDMatrixLinux>();
 
    settings = new RTIMUSettings();
 

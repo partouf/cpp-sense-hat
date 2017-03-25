@@ -5,7 +5,7 @@ SenseHAT::ISenseHAT *HATInstance = nullptr;
 
 SenseHAT::SenseHATSim::SenseHATSim() : ISenseHAT()
 {
-   Matrix = std::make_unique<SenseHAT::SenseHATLedMatrixSim>();
+   LEDMatrix = std::make_unique<SenseHAT::SenseHATLedMatrixSim>();
 }
 
 double SenseHAT::SenseHATSim::get_humidity()
